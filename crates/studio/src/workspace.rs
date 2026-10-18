@@ -3,17 +3,18 @@ use std::rc::Rc;
 use gpui::prelude::FluentBuilder as _;
 use gpui::{
     Context, Entity, InteractiveElement, IntoElement, ParentElement, Render, Styled, Subscription,
-    Window, WindowControlArea, div, px, rgb, rgba, white,
+    Window, WindowControlArea, div, px, white,
 };
 use gpui_base::dock::{DockArea, DockEvent, DockLayout, DockPlacement};
 
-use crate::{
+use studio_shell::{
     caption,
-    dock::{self, DockPanel, DockSkin, PanelZone},
+    dock::{self, DockSkin, PanelZone},
     fullscreen::FullscreenTitlebar,
-    panels::PanelKind,
-    theme::{BACKDROP, FONT, FONT_SIZE, TEXT},
+    theme::{colors, font, font_size},
 };
+
+use crate::panels::PanelKind;
 
 pub struct Workspace {
     area: Entity<DockArea>,
@@ -24,12 +25,11 @@ pub struct Workspace {
 
 impl Workspace {
     pub fn new(window: &mut Window, cx: &mut Context<Self>) -> Self {
-        let canvas = DockPanel::new(PanelKind::Canvas, "Hello", PanelZone::Canvas, cx);
-        let project = DockPanel::new(PanelKind::Project, "Project", PanelZone::Dock, cx);
-        let timeline = DockPanel::new(PanelKind::Timeline, "Timeline", PanelZone::Dock, cx);
-        let color_picker =
-            DockPanel::new(PanelKind::ColorPicker, "Color Picker", PanelZone::Dock, cx);
-        let palette = DockPanel::new(PanelKind::Palette, "Palette", PanelZone::Dock, cx);
+        let canvas = PanelKind::Canvas.panel("Hello", PanelZone::Canvas, cx);
+        let project = PanelKind::Project.panel("Project", PanelZone::Dock, cx);
+        let timeline = PanelKind::Timeline.panel("Timeline", PanelZone::Dock, cx);
+        let color_picker = PanelKind::ColorPicker.panel("Color Picker", PanelZone::Dock, cx);
+        let palette = PanelKind::Palette.panel("Palette", PanelZone::Dock, cx);
 
         let (area, skin) = DockSkin::dock_area("workspace", window, cx);
 
@@ -65,11 +65,11 @@ impl Workspace {
             let dock = area.downgrade();
             let handle = window.window_handle();
             let async_app = cx.to_async();
-            crate::mac::set_toolbar_action(move |button| {
+            studio_shell::mac::set_toolbar_action(move |button| {
                 let placement = match button {
-                    crate::mac::TitlebarButton::LeftDock => DockPlacement::Left,
-                    crate::mac::TitlebarButton::RightDock => DockPlacement::Right,
-                    crate::mac::TitlebarButton::BottomDock => DockPlacement::Bottom,
+                    studio_shell::mac::TitlebarButton::LeftDock => DockPlacement::Left,
+                    studio_shell::mac::TitlebarButton::RightDock => DockPlacement::Right,
+                    studio_shell::mac::TitlebarButton::BottomDock => DockPlacement::Bottom,
                 };
                 let dock = dock.clone();
                 let mut async_app = async_app.clone();
@@ -116,16 +116,16 @@ impl Render for Workspace {
     fn render(&mut self, window: &mut Window, _: &mut Context<Self>) -> impl IntoElement {
         self.fullscreen.sync(window);
         #[cfg(target_os = "macos")]
-        crate::mac::attach_dock_buttons(window);
+        studio_shell::mac::attach_dock_buttons(window);
         let native_titlebar = cfg!(target_os = "macos");
 
         div()
             .id("workspace-root")
             .size_full()
-            .bg(rgb(BACKDROP))
-            .font_family(FONT)
-            .text_size(px(FONT_SIZE))
-            .text_color(rgba(TEXT))
+            .bg(colors().background)
+            .font_family(font())
+            .text_size(font_size())
+            .text_color(colors().foreground)
             .flex()
             .flex_col()
             .when(!native_titlebar, |el| {

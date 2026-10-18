@@ -3,7 +3,7 @@ use std::{cell::Cell, rc::Rc, sync::Arc};
 use gpui::{
     AnyWindowHandle, App, Bounds, Context, Entity, IntoElement, ParentElement, Pixels, Point,
     Render, SharedString, Size, Styled, Subscription, TitlebarOptions, WeakEntity, Window,
-    WindowBounds, WindowOptions, div, point, prelude::*, px, rgb, rgba, size,
+    WindowBounds, WindowOptions, div, point, prelude::*, px, size,
 };
 use gpui_base::dock::{
     AnyDrag, DockArea, DockEvent, DockPlacement, DropTarget, InsertTarget, PanelView,
@@ -18,7 +18,7 @@ use super::{
 };
 use crate::{
     fullscreen::FullscreenTitlebar,
-    theme::{BACKDROP, FONT, FONT_SIZE, TEXT},
+    theme::{colors, font, font_size},
 };
 
 pub(crate) const SPARE_IDLE: std::time::Duration = std::time::Duration::from_secs(60);
@@ -335,10 +335,10 @@ impl Render for DetachedWindow {
             .flex()
             .flex_col()
             .overflow_hidden()
-            .bg(rgb(BACKDROP))
-            .font_family(FONT)
-            .text_size(px(FONT_SIZE))
-            .text_color(rgba(TEXT))
+            .bg(colors().background)
+            .font_family(font())
+            .text_size(font_size())
+            .text_color(colors().foreground)
             .child(div().flex_1().min_h(px(0.)).child(self.area.clone()))
     }
 }

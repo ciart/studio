@@ -1,12 +1,8 @@
 use gpui::{
-    AnyElement, IntoElement, ObjectFit, ParentElement, Styled, StyledImage, div, img, px, rgb,
-    rgba, white,
+    AnyElement, IntoElement, ObjectFit, ParentElement, Styled, StyledImage, div, img, px, white,
 };
 
-use crate::{
-    panels::widgets::icon,
-    theme::{ACCENT, CHIP, OUTLINE, PANEL, TEXT, TRACK},
-};
+use studio_shell::{theme::colors, widgets::icon};
 
 fn frame_chip(label: &'static str, left: f32, active: bool) -> impl IntoElement {
     div()
@@ -21,7 +17,11 @@ fn frame_chip(label: &'static str, left: f32, active: bool) -> impl IntoElement 
         .justify_center()
         .text_size(px(10.))
         .text_color(white())
-        .bg(rgb(if active { ACCENT } else { CHIP }))
+        .bg(if active {
+            colors().primary
+        } else {
+            colors().accent
+        })
         .child(label)
 }
 
@@ -35,7 +35,7 @@ fn cel(left: f32, top: f32, width: f32) -> impl IntoElement {
         .h(px(25.))
         .rounded(px(5.))
         .border_1()
-        .border_color(rgba(OUTLINE))
+        .border_color(colors().input)
 }
 
 fn layer_row(top: f32, label: &'static str, visible: bool, unlocked: bool) -> impl IntoElement {
@@ -56,7 +56,7 @@ fn layer_row(top: f32, label: &'static str, visible: bool, unlocked: bool) -> im
             },
             20.,
             20.,
-            TEXT,
+            colors().foreground,
         ))
         .child(icon(
             if unlocked {
@@ -66,7 +66,7 @@ fn layer_row(top: f32, label: &'static str, visible: bool, unlocked: bool) -> im
             },
             20.,
             20.,
-            TEXT,
+            colors().foreground,
         ))
         .child(
             div()
@@ -85,7 +85,7 @@ pub fn timeline() -> AnyElement {
         .right_0()
         .bottom_0()
         .border_l_1()
-        .border_color(rgb(PANEL))
+        .border_color(colors().surface)
         .child(frame_chip("1", 11., false))
         .child(frame_chip("2", 42., true))
         .child(frame_chip("3", 73., false))
@@ -100,7 +100,7 @@ pub fn timeline() -> AnyElement {
                 .top(px(20.))
                 .w(px(1.))
                 .bottom_0()
-                .bg(rgb(ACCENT)),
+                .bg(colors().primary),
         );
 
     let layers = div()
@@ -109,7 +109,7 @@ pub fn timeline() -> AnyElement {
         .top_0()
         .w(px(160.))
         .h_full()
-        .bg(rgb(PANEL))
+        .bg(colors().surface)
         .child(
             div()
                 .absolute()
@@ -117,12 +117,12 @@ pub fn timeline() -> AnyElement {
                 .top_0()
                 .w(px(160.))
                 .h(px(30.))
-                .bg(rgb(TRACK))
+                .bg(colors().secondary)
                 .child(div().absolute().left(px(4.)).top(px(5.)).child(icon(
                     "icons/plus.svg",
                     20.,
                     20.,
-                    TEXT,
+                    colors().foreground,
                 ))),
         )
         .child(layer_row(30., "Layer 2", true, true))

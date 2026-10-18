@@ -8,7 +8,7 @@ use gpui::{
     AnyElement, AnyView, AnyWindowHandle, App, Axis, Bounds, DispatchPhase, Div, DragMoveEvent,
     Entity, InteractiveElement, IntoElement, MouseButton, MouseMoveEvent, MouseUpEvent,
     ParentElement, Pixels, Point, Stateful, StatefulInteractiveElement, Styled, WeakEntity, Window,
-    canvas, div, prelude::*, px, rgb, rgba,
+    canvas, div, prelude::*, px, transparent_black,
 };
 use gpui_base::{
     ElementExt, Placement,
@@ -31,11 +31,8 @@ use super::{
 };
 use crate::{
     caption,
-    panels::{empty_hint, icon},
-    theme::{
-        ACCENT, BACKDROP, CANVAS, DROP_TARGET, FONT, FONT_SIZE, GAP, HAIRLINE, MUTED, PANEL,
-        RADIUS, TEXT,
-    },
+    theme::{GAP, colors, drop_target, font, font_size, radius},
+    widgets::{empty_hint, icon},
 };
 
 #[derive(Clone)]
@@ -297,7 +294,7 @@ impl DockSkin {
             .flex()
             .items_center()
             .justify_center()
-            .when(merging, |this| this.bg(rgba(DROP_TARGET)))
+            .when(merging, |this| this.bg(drop_target()))
             .on_prepaint({
                 let bounds_cache = self.empty_dock_bounds.clone();
                 move |bounds, _, _| {
@@ -312,7 +309,7 @@ impl DockSkin {
                 move |style, _, _, _| match !drag_state.window_drag_active()
                     && drop_allowed(kind, drag_state.dragging_zone.get(), placement)
                 {
-                    true => style.bg(rgba(DROP_TARGET)),
+                    true => style.bg(drop_target()),
                     false => style,
                 }
             })
@@ -370,7 +367,7 @@ fn drop_caret(before: bool) -> impl IntoElement {
         .bottom(px(5.))
         .w(px(2.))
         .rounded(px(1.))
-        .bg(rgb(ACCENT))
+        .bg(colors().primary)
         .map(|this| match before {
             true => this.left_0(),
             false => this.right_0(),
@@ -396,10 +393,10 @@ impl DockAreaRenderer for DockSkin {
             .flex()
             .flex_row()
             .overflow_hidden()
-            .bg(rgb(BACKDROP))
-            .font_family(FONT)
-            .text_size(px(FONT_SIZE))
-            .text_color(rgba(TEXT))
+            .bg(colors().background)
+            .font_family(font())
+            .text_size(font_size())
+            .text_color(colors().foreground)
             .on_mouse_move(move |event: &MouseMoveEvent, window, cx| {
                 let dock = dragging.borrow().clone();
                 let Some(dock) = dock else {
@@ -514,8 +511,12 @@ impl TabGroupRenderer for DockSkin {
             .flex_col()
             .min_h(px(0.))
             .overflow_hidden()
-            .rounded(px(RADIUS))
-            .bg(rgb(if in_dock { PANEL } else { BACKDROP }))
+            .rounded(radius())
+            .bg(if in_dock {
+                colors().surface
+            } else {
+                colors().background
+            })
             .when_some(self.gap_after(node), gutter)
     }
 
@@ -531,7 +532,11 @@ impl TabGroupRenderer for DockSkin {
             .panels()
             .get(group.active_ix())
             .and_then(|panel| background_of(panel, cx))
-            .unwrap_or(if in_dock { PANEL } else { CANVAS });
+            .unwrap_or(if in_dock {
+                colors().surface
+            } else {
+                colors().muted
+            });
         let bounds_cache = self.group_bounds.clone();
 
         div()
@@ -540,9 +545,9 @@ impl TabGroupRenderer for DockSkin {
             .flex_1()
             .min_h(px(0.))
             .overflow_hidden()
-            .bg(rgb(background))
-            .rounded_b(px(RADIUS))
-            .when(!in_dock, |this| this.rounded_tr(px(RADIUS)))
+            .bg(background)
+            .rounded_b(radius())
+            .when(!in_dock, |this| this.rounded_tr(radius()))
             .on_prepaint(move |bounds, _, _| {
                 bounds_cache.borrow_mut().entry(node).or_default().content = Some(bounds);
             })
@@ -572,7 +577,7 @@ impl TabGroupRenderer for DockSkin {
                 this.child(
                     div()
                         .absolute()
-                        .bg(rgba(DROP_TARGET))
+                        .bg(drop_target())
                         .map(|this| match placement {
                             Some(Placement::Left) => this.top_0().left_0().w_1_2().h_full(),
                             Some(Placement::Right) => this.top_0().right_0().w_1_2().h_full(),
@@ -628,13 +633,13 @@ impl TabGroupRenderer for DockSkin {
             .items_center()
             .overflow_hidden()
             .when(in_dock, |this| {
-                this.bg(rgb(PANEL))
+                this.bg(colors().surface)
                     .justify_between()
                     .when(!in_titlebar, |this| {
                         this.pr(px(9.))
-                            .rounded_t(px(RADIUS))
+                            .rounded_t(radius())
                             .border_t_1()
-                            .border_color(rgba(HAIRLINE))
+                            .border_color(colors().border)
                     })
             })
             .map(|this| match (in_titlebar, in_dock) {
@@ -642,7 +647,7 @@ impl TabGroupRenderer for DockSkin {
                 (false, true) => this.pl(px(12.)),
                 (false, false) => this,
             })
-            .when(merging, |this| this.bg(rgba(DROP_TARGET)))
+            .when(merging, |this| this.bg(drop_target()))
             .on_prepaint({
                 let node = group.node();
                 let bounds_cache = self.group_bounds.clone();
@@ -655,7 +660,7 @@ impl TabGroupRenderer for DockSkin {
                 move |style, _, _, _| match !skin.drag.window_drag_active()
                     && skin.drag.drag_accepted(group_zone)
                 {
-                    true => style.bg(rgba(DROP_TARGET)),
+                    true => style.bg(drop_target()),
                     false => style,
                 }
             })
@@ -742,12 +747,20 @@ impl TabGroupRenderer for DockSkin {
                         .map(|this| match in_dock {
                             true => this,
                             false => this
-                                .rounded_t(px(RADIUS))
+                                .rounded_t(radius())
                                 .border_t_1()
-                                .border_color(rgba(if selected { HAIRLINE } else { 0 }))
-                                .when(selected, |this| this.bg(rgb(CANVAS))),
+                                .border_color(if selected {
+                                    colors().border
+                                } else {
+                                    transparent_black()
+                                })
+                                .when(selected, |this| this.bg(colors().muted)),
                         })
-                        .text_color(rgba(if selected { TEXT } else { MUTED }))
+                        .text_color(if selected {
+                            colors().foreground
+                        } else {
+                            colors().muted_foreground
+                        })
                         .child(
                             div()
                                 .h_full()
@@ -761,7 +774,12 @@ impl TabGroupRenderer for DockSkin {
                                 })
                                 .child(title.clone())
                                 .when(!in_dock, |this| {
-                                    this.child(icon("icons/close_small.svg", 20., 20., TEXT))
+                                    this.child(icon(
+                                        "icons/close_small.svg",
+                                        20.,
+                                        20.,
+                                        colors().foreground,
+                                    ))
                                 }),
                         )
                         .when_some(caret, |this, before| this.child(drop_caret(before)))
@@ -818,7 +836,12 @@ impl TabGroupRenderer for DockSkin {
                         .flex()
                         .items_center()
                         .when(in_titlebar, |this| this.px(px(9.)))
-                        .child(icon("icons/more_horiz.svg", 20., 8., MUTED)),
+                        .child(icon(
+                            "icons/more_horiz.svg",
+                            20.,
+                            8.,
+                            colors().muted_foreground,
+                        )),
                 )
             })
             .when(in_titlebar, |this| {
@@ -845,7 +868,7 @@ impl TabGroupRenderer for DockSkin {
                 .top(to.origin().y)
                 .w(to.size().width)
                 .h(to.size().height)
-                .bg(rgba(DROP_TARGET))
+                .bg(drop_target())
                 .into_any_element(),
         )
     }

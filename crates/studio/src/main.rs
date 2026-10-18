@@ -1,11 +1,5 @@
 mod assets;
-mod caption;
-mod dock;
-mod fullscreen;
-#[cfg(target_os = "macos")]
-mod mac;
 mod panels;
-mod theme;
 mod workspace;
 
 use gpui::{
@@ -17,6 +11,7 @@ use crate::{assets::Assets, workspace::Workspace};
 
 fn main() {
     application().with_assets(Assets).run(|cx: &mut App| {
+        studio_shell::theme::install(cx);
         let design = size(px(1512.), px(982.));
         let window_size = match cx.primary_display() {
             Some(display) => {
@@ -43,6 +38,7 @@ fn main() {
             |window, cx| {
                 #[cfg(target_os = "macos")]
                 {
+                    use studio_shell::mac;
                     mac::force_dark_appearance();
                     mac::attach_toolbar(window, "Ciart Studio");
                     mac::attach_dock_buttons(window);

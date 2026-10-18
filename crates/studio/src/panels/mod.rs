@@ -3,14 +3,14 @@ mod color_picker;
 mod palette;
 mod project;
 mod timeline;
-mod widgets;
 
 pub use canvas::CanvasPanel;
-pub use widgets::{empty_hint, icon};
 
-use gpui::{AnyElement, AnyView, App, AppContext as _, IntoElement};
-
-use crate::theme::{CANVAS, PANEL, TRACK};
+use gpui::{App, AppContext as _, Entity, Hsla, SharedString};
+use studio_shell::{
+    dock::{DockPanel, PanelContent, PanelZone},
+    theme::colors,
+};
 
 pub const PROJECT: &str = "Project";
 pub const CANVAS_PANEL: &str = "Canvas";
@@ -28,11 +28,11 @@ pub enum PanelKind {
 }
 
 impl PanelKind {
-    pub fn background(self) -> u32 {
+    pub fn background(self) -> Hsla {
         match self {
-            PanelKind::Canvas => CANVAS,
-            PanelKind::Timeline => TRACK,
-            _ => PANEL,
+            PanelKind::Canvas => colors().muted,
+            PanelKind::Timeline => colors().secondary,
+            _ => colors().surface,
         }
     }
 
@@ -48,6 +48,16 @@ impl PanelKind {
 
     /// Build what this panel renders. Panels that own state get their own view
     /// entity so it survives re-renders and follows the panel between windows.
+    pub fn panel(
+        self,
+        title: impl Into<SharedString>,
+        zone: PanelZone,
+        cx: &mut App,
+    ) -> Entity<DockPanel> {
+        let content = self.content(cx);
+        DockPanel::new(self.name(), self.background(), title, zone, content, cx)
+    }
+
     pub fn content(self, cx: &mut App) -> PanelContent {
         match self {
             PanelKind::Canvas => PanelContent::View(cx.new(CanvasPanel::new).into()),
@@ -55,22 +65,6 @@ impl PanelKind {
             PanelKind::Timeline => PanelContent::Stateless(timeline::timeline),
             PanelKind::ColorPicker => PanelContent::Stateless(color_picker::color_picker),
             PanelKind::Palette => PanelContent::Stateless(palette::palette),
-        }
-    }
-}
-
-pub enum PanelContent {
-    /// Stateless panels are element trees rebuilt on every render.
-    Stateless(fn() -> AnyElement),
-    /// Stateful panels live in their own view entity.
-    View(AnyView),
-}
-
-impl PanelContent {
-    pub fn body(&self) -> AnyElement {
-        match self {
-            PanelContent::Stateless(build) => build(),
-            PanelContent::View(view) => view.clone().into_any_element(),
         }
     }
 }

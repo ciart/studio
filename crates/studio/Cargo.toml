@@ -1,0 +1,16 @@
+[package]
+name = "studio"
+description = "Ciart Studio"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+
+[dependencies]
+studio-core.workspace = true
+studio-shell.workspace = true
+gpui.workspace = true
+gpui-base.workspace = true
+gpui_platform.workspace = true
+
+[target.'cfg(target_os = "windows")'.build-dependencies]
+embed-resource = "3"

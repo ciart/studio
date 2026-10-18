@@ -29,8 +29,8 @@ mod native {
     use windows::core::{BOOL, PCWSTR, w};
 
     use super::ChipContent;
-    use crate::theme::{HAIRLINE, PANEL, RADIUS, TEXT};
-    use gpui::{App, Pixels, Point};
+    use crate::theme::{colors, font, font_size, radius};
+    use gpui::{App, Hsla, Pixels, Point, Rgba};
 
     const BORDER: f32 = 1.;
 
@@ -206,13 +206,13 @@ mod native {
                 right: width,
                 bottom: height,
             };
-            let fill = CreateSolidBrush(COLORREF(bgr(PANEL)));
+            let fill = CreateSolidBrush(COLORREF(bgr(colors().surface)));
             FillRect(dc, &bounds, fill);
             let _ = DeleteObject(fill.into());
 
             let face = font_face();
             let font = CreateFontW(
-                -((crate::theme::FONT_SIZE * content.scale).round() as i32),
+                -((f32::from(font_size()) * content.scale).round() as i32),
                 0,
                 0,
                 0,
@@ -229,7 +229,10 @@ mod native {
             );
             let previous_font = SelectObject(dc, font.into());
             SetBkMode(dc, TRANSPARENT);
-            SetTextColor(dc, COLORREF(bgr(over(TEXT, PANEL))));
+            SetTextColor(
+                dc,
+                COLORREF(bgr(over(colors().foreground, colors().surface))),
+            );
             let mut text: Vec<u16> = content.title.encode_utf16().collect();
             let mut text_bounds = bounds;
             DrawTextW(
@@ -245,7 +248,7 @@ mod native {
                 bits as *mut u32,
                 width,
                 height,
-                RADIUS * content.scale,
+                f32::from(radius()) * content.scale,
                 BORDER * content.scale,
             );
 
@@ -283,10 +286,10 @@ mod native {
         static FACE: std::sync::LazyLock<Vec<u16>> = std::sync::LazyLock::new(|| {
             // GDI resolves face names literally, so the `.SystemUIFont` alias gpui
             // understands has to be turned into the family gpui itself picks.
-            let family = if crate::theme::FONT == ".SystemUIFont" {
+            let family = if font() == ".SystemUIFont" {
                 system_ui_font_family()
             } else {
-                crate::theme::FONT.to_owned()
+                font().to_string()
             };
             family.encode_utf16().chain(std::iter::once(0)).collect()
         });
@@ -313,7 +316,7 @@ mod native {
     }
 
     fn shape(bits: *mut u32, width: i32, height: i32, radius: f32, border: f32) {
-        let (border_b, border_g, border_r) = channels(over(HAIRLINE, PANEL));
+        let (border_b, border_g, border_r) = channels(over(colors().border, colors().surface));
         for y in 0..height {
             for x in 0..width {
                 let distance = rounded_rect(
@@ -356,33 +359,36 @@ mod native {
         outside + qx.max(qy).min(0.) - radius
     }
 
-    fn over(color: u32, backdrop: u32) -> u32 {
-        let alpha = (color & 0xff) as f32 / 255.;
-        let (br, bg, bb) = (
-            (backdrop >> 16) & 0xff,
-            (backdrop >> 8) & 0xff,
-            backdrop & 0xff,
-        );
-        let (cr, cg, cb) = (
-            (color >> 24) & 0xff,
-            (color >> 16) & 0xff,
-            (color >> 8) & 0xff,
-        );
-        let mix =
-            |c: u32, b: u32| ((c as f32 * alpha + b as f32 * (1. - alpha)).round() as u32) & 0xff;
-        mix(cr, br) << 16 | mix(cg, bg) << 8 | mix(cb, bb)
+    fn over(color: Hsla, backdrop: Hsla) -> Rgba {
+        let (color, backdrop) = (Rgba::from(color), Rgba::from(backdrop));
+        Rgba {
+            r: backdrop.r + (color.r - backdrop.r) * color.a,
+            g: backdrop.g + (color.g - backdrop.g) * color.a,
+            b: backdrop.b + (color.b - backdrop.b) * color.a,
+            a: 1.,
+        }
     }
 
-    fn channels(rgb: u32) -> (f32, f32, f32) {
-        (
-            (rgb & 0xff) as f32,
-            ((rgb >> 8) & 0xff) as f32,
-            ((rgb >> 16) & 0xff) as f32,
-        )
+    fn channels(color: impl Into<Rgba>) -> (f32, f32, f32) {
+        let color = color.into();
+        (color.b * 255., color.g * 255., color.r * 255.)
     }
 
-    fn bgr(rgb: u32) -> u32 {
-        (rgb & 0xff) << 16 | (rgb & 0xff00) | (rgb >> 16) & 0xff
+    fn bgr(color: impl Into<Rgba>) -> u32 {
+        let (b, g, r) = channels(color);
+        (b.round() as u32) << 16 | (g.round() as u32) << 8 | r.round() as u32
+    }
+
+    #[cfg(test)]
+    mod tests {
+        use super::{bgr, over};
+        use crate::theme::colors;
+
+        #[test]
+        fn packs_tokens_as_colorref() {
+            assert_eq!(bgr(colors().surface), 0x2b2626);
+            assert_eq!(bgr(over(colors().foreground, colors().surface)), 0xe9e9e9);
+        }
     }
 }
 

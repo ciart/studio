@@ -1,6 +1,6 @@
 use std::{cell::RefCell, collections::HashMap, rc::Rc, sync::Arc};
 
-use gpui::{App, Axis, Bounds, Entity, Pixels, Point, SharedString, point};
+use gpui::{App, Axis, Bounds, Entity, Hsla, Pixels, Point, SharedString, point};
 use gpui_base::{
     Placement,
     dock::{DockArea, DockPlacement, NodeId, PaneRef, PanelId, PanelView},
@@ -16,11 +16,11 @@ pub(crate) fn panel_title(panel: &Arc<dyn PanelView>, cx: &App) -> SharedString 
         .unwrap_or_else(|| panel.panel_name(cx).into())
 }
 
-pub(crate) fn background_of(panel: &Arc<dyn PanelView>, cx: &App) -> Option<u32> {
+pub(crate) fn background_of(panel: &Arc<dyn PanelView>, cx: &App) -> Option<Hsla> {
     panel
         .as_any()
         .downcast_ref::<Entity<DockPanel>>()
-        .map(|panel| panel.read(cx).kind.background())
+        .map(|panel| panel.read(cx).background)
 }
 
 pub(crate) fn zone_of(panel: &Arc<dyn PanelView>, cx: &App) -> Option<PanelZone> {

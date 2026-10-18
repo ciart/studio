@@ -13,16 +13,29 @@ use std::{
 };
 
 use gpui::{
-    AnyWindowHandle, App, Context, Empty, Entity, EventEmitter, FocusHandle, Focusable,
-    IntoElement, ParentElement, Render, SharedString, Styled, WeakEntity, Window, div, prelude::*,
-    px, rgb, rgba,
+    AnyElement, AnyView, AnyWindowHandle, App, Context, Empty, Entity, EventEmitter, FocusHandle,
+    Focusable, Hsla, IntoElement, ParentElement, Render, SharedString, Styled, WeakEntity, Window,
+    div, prelude::*,
 };
 use gpui_base::dock::{DockArea, NodeId, Panel, PanelEvent, PanelId, PanelView};
 
-use crate::{
-    panels::{PanelContent, PanelKind},
-    theme::{FONT, FONT_SIZE, HAIRLINE, PANEL, RADIUS, TEXT},
-};
+use crate::theme::{colors, font, font_size, radius};
+
+pub enum PanelContent {
+    /// Stateless panels are element trees rebuilt on every render.
+    Stateless(fn() -> AnyElement),
+    /// Stateful panels live in their own view entity.
+    View(AnyView),
+}
+
+impl PanelContent {
+    pub fn body(&self) -> AnyElement {
+        match self {
+            PanelContent::Stateless(build) => build(),
+            PanelContent::View(view) => view.clone().into_any_element(),
+        }
+    }
+}
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum PanelZone {
@@ -43,7 +56,8 @@ impl AreaKind {
 }
 
 pub struct DockPanel {
-    pub(crate) kind: PanelKind,
+    pub(crate) name: &'static str,
+    pub(crate) background: Hsla,
     pub(crate) title: SharedString,
     pub(crate) zone: PanelZone,
     content: PanelContent,
@@ -52,16 +66,19 @@ pub struct DockPanel {
 
 impl DockPanel {
     pub fn new(
-        kind: PanelKind,
+        name: &'static str,
+        background: Hsla,
         title: impl Into<SharedString>,
         zone: PanelZone,
+        content: PanelContent,
         cx: &mut App,
     ) -> Entity<Self> {
         cx.new(|cx| Self {
-            kind,
+            name,
+            background,
             title: title.into(),
             zone,
-            content: kind.content(cx),
+            content,
             focus_handle: cx.focus_handle(),
         })
     }
@@ -69,7 +86,7 @@ impl DockPanel {
 
 impl Panel for DockPanel {
     fn panel_name(&self) -> &'static str {
-        self.kind.name()
+        self.name
     }
 }
 
@@ -109,13 +126,13 @@ impl Render for DragPreview {
             .flex()
             .items_center()
             .justify_center()
-            .bg(rgb(PANEL))
-            .font_family(FONT)
-            .text_size(px(FONT_SIZE))
-            .text_color(rgba(TEXT))
+            .bg(colors().surface)
+            .font_family(font())
+            .text_size(font_size())
+            .text_color(colors().foreground)
             .border_1()
-            .border_color(rgba(HAIRLINE))
-            .rounded(px(RADIUS))
+            .border_color(colors().border)
+            .rounded(radius())
             .child(self.title.clone())
     }
 }

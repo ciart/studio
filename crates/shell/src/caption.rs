@@ -1,10 +1,10 @@
 use gpui::prelude::FluentBuilder as _;
 use gpui::{
     InteractiveElement as _, IntoElement, ParentElement, StatefulInteractiveElement as _, Styled,
-    Window, WindowControlArea, div, px, rgb, rgba, white,
+    Window, WindowControlArea, div, px, rgb, white,
 };
 
-use crate::theme::{HAIRLINE, OUTLINE, TEXT};
+use crate::theme::colors;
 
 const BUTTON_WIDTH: f32 = 46.;
 const GLYPH_SIZE: f32 = 10.;
@@ -71,7 +71,7 @@ fn button(
         .justify_center()
         .font_family(caption_font())
         .text_size(px(GLYPH_SIZE))
-        .text_color(rgba(TEXT))
+        .text_color(colors().foreground)
         .occlude()
         .window_control_area(area)
         .when(is_close, |el| {
@@ -79,8 +79,8 @@ fn button(
                 .active(|s| s.bg(rgb(CLOSE_ACTIVE)).text_color(white()))
         })
         .when(!is_close, |el| {
-            el.hover(|s| s.bg(rgba(HAIRLINE)))
-                .active(|s| s.bg(rgba(OUTLINE)))
+            el.hover(|s| s.bg(colors().border))
+                .active(|s| s.bg(colors().input))
         })
         .child(glyph)
 }

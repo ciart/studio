@@ -1,0 +1,8 @@
+[package]
+name = "studio-core"
+description = "Ciart Studio domain logic"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+
+[dependencies]
