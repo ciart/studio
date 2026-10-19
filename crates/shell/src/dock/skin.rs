@@ -14,8 +14,7 @@ use gpui_base::{
     ElementExt, Placement,
     dock::{
         AnyDrag, DockArea, DockAreaRenderer, DockContext, DockPlacement, DropIndicator,
-        InsertTarget, NodeId, PanelId, TabGroupContext, TabGroupRenderer, TileContext,
-        TilesRenderer,
+        InsertTarget, NodeId, PanelId, TabGroupContext, TabGroupRenderer,
     },
     h_flex,
 };
@@ -404,9 +403,6 @@ impl DockAreaRenderer for DockSkin {
                 };
                 dock.resize_to(event.position, window, cx);
             })
-            .on_mouse_up(MouseButton::Left, move |_: &MouseUpEvent, _, _| {
-                finished.borrow_mut().take();
-            })
             .child(
                 canvas(
                     |_, _, _| (),
@@ -416,6 +412,18 @@ impl DockAreaRenderer for DockSkin {
                             if phase == DispatchPhase::Bubble {
                                 drag.pointer_moved(window, cx);
                             }
+                        });
+                        let finished = finished.clone();
+                        window.on_mouse_event(move |event: &MouseUpEvent, phase, window, cx| {
+                            if phase != DispatchPhase::Capture || event.button != MouseButton::Left
+                            {
+                                return;
+                            }
+                            let finished = finished.borrow_mut().take();
+                            let Some(dock) = finished else {
+                                return;
+                            };
+                            dock.end_resize(window, cx);
                         });
                     },
                 )
@@ -469,14 +477,13 @@ impl DockAreaRenderer for DockSkin {
         let empty = self.empty_docks.borrow().contains(&placement);
 
         div()
+            .size_full()
             .flex()
-            .flex_none()
             .relative()
-            .overflow_hidden()
             .map(|this| match placement {
-                DockPlacement::Bottom => this.w_full().h(dock.size()).flex_col().mt(px(GAP)),
-                DockPlacement::Right => this.h_full().w(dock.size()).flex_row().ml(px(GAP)),
-                _ => this.h_full().w(dock.size()).flex_row().mr(px(GAP)),
+                DockPlacement::Bottom => this.flex_col().pt(px(GAP)),
+                DockPlacement::Right => this.flex_row().pl(px(GAP)),
+                _ => this.flex_row().pr(px(GAP)),
             })
             .map(|this| match empty {
                 false => this.child(content),
@@ -486,11 +493,11 @@ impl DockAreaRenderer for DockSkin {
             .into_any_element()
     }
 
-    fn tab_group_renderer(&self) -> Rc<dyn TabGroupRenderer> {
-        Rc::new(self.clone())
+    fn closed_dock_extent(&self, _: DockPlacement) -> Pixels {
+        px(0.)
     }
 
-    fn tiles_renderer(&self) -> Rc<dyn TilesRenderer> {
+    fn tab_group_renderer(&self) -> Rc<dyn TabGroupRenderer> {
         Rc::new(self.clone())
     }
 }
@@ -871,21 +878,5 @@ impl TabGroupRenderer for DockSkin {
                 .bg(drop_target())
                 .into_any_element(),
         )
-    }
-}
-
-impl TilesRenderer for DockSkin {
-    fn render_drag_bar(&self, tile: &TileContext, _: &mut Window, _: &mut App) -> AnyElement {
-        div()
-            .h(px(28.))
-            .on_mouse_down(MouseButton::Left, {
-                let tile = tile.clone();
-                move |event, window, cx| tile.begin_move(event.position, window, cx)
-            })
-            .into_any_element()
-    }
-
-    fn grid_size(&self, _: &App) -> Pixels {
-        px(8.)
     }
 }

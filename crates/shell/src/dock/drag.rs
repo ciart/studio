@@ -10,7 +10,7 @@ use gpui::{
 };
 use gpui_base::{
     Placement,
-    dock::{AnyDrag, DockArea, DockPlacement, DropTarget, NodeId, PanelView},
+    dock::{AnyDrag, DockArea, DockPlacement, NodeId, PanelView},
 };
 
 use super::{
@@ -684,14 +684,9 @@ pub(crate) fn apply_merge(item: &AnyDrag, target: MergeTarget, cx: &mut App) {
     };
     let _ = target.window.update(cx, |_, window, cx| {
         match target.spot {
-            MergeSpot::Group { node, placement } => apply_drop_in(
-                target.kind,
-                &area,
-                item,
-                &DropTarget::Group { node, placement },
-                window,
-                cx,
-            ),
+            MergeSpot::Group { node, placement } => {
+                apply_drop_in(target.kind, &area, item, node, placement, window, cx)
+            }
             MergeSpot::EmptyDock(placement) => {
                 if let Some(drag) = item.value().downcast_ref::<PanelDrag>() {
                     transfer_panel(drag, &area, placement, None, window, cx);

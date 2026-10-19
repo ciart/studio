@@ -155,7 +155,7 @@ unsafe fn symbol_image(name: &std::ffi::CStr) -> *mut Object {
 }
 
 #[derive(Copy, Clone)]
-pub(crate) enum TitlebarButton {
+pub enum TitlebarButton {
     LeftDock,
     RightDock,
     BottomDock,
@@ -166,7 +166,7 @@ thread_local! {
         const { std::cell::RefCell::new(None) };
 }
 
-pub(crate) fn set_toolbar_action(action: impl Fn(TitlebarButton) + 'static) {
+pub fn set_toolbar_action(action: impl Fn(TitlebarButton) + 'static) {
     TOOLBAR_ACTION.with(|slot| *slot.borrow_mut() = Some(std::rc::Rc::new(action)));
 }
 
@@ -313,7 +313,7 @@ fn toolbar_delegate() -> *mut Object {
     }) as *mut Object
 }
 
-pub(crate) fn force_dark_appearance() {
+pub fn force_dark_appearance() {
     unsafe {
         let name = ns_string(c"NSAppearanceNameDarkAqua");
         let appearance: *mut Object = msg_send![class!(NSAppearance), appearanceNamed: name];
@@ -322,7 +322,7 @@ pub(crate) fn force_dark_appearance() {
     }
 }
 
-pub(crate) fn attach_dock_buttons(window: &Window) -> bool {
+pub fn attach_dock_buttons(window: &Window) -> bool {
     let Some(native) = native_window(window) else {
         return false;
     };
@@ -380,7 +380,7 @@ unsafe fn dock_row(titlebar: *mut Object) -> *mut Object {
     }
 }
 
-pub(crate) fn attach_toolbar(window: &Window, title: &str) {
+pub fn attach_toolbar(window: &Window, title: &str) {
     let Some(native) = native_window(window) else {
         return;
     };

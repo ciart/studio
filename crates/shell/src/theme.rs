@@ -24,7 +24,7 @@ static TOKENS: LazyLock<SemanticThemeTokens> = LazyLock::new(|| SemanticThemeTok
         border: rgba(0xffffff1a).into(),
         input: rgba(0xffffff33).into(),
         ring: rgb(0x5089f0).into(),
-        ..Default::default()
+        ..ColorTokens::dark()
     },
     radius: RadiusTokens {
         lg: px(10.),

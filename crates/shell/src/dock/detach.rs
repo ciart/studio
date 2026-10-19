@@ -5,8 +5,11 @@ use gpui::{
     Render, SharedString, Size, Styled, Subscription, TitlebarOptions, WeakEntity, Window,
     WindowBounds, WindowOptions, div, point, prelude::*, px, size,
 };
-use gpui_base::dock::{
-    AnyDrag, DockArea, DockEvent, DockPlacement, DropTarget, InsertTarget, PanelView,
+use gpui_base::{
+    Placement,
+    dock::{
+        AnyDrag, DockArea, DockEvent, DockPlacement, DropTarget, InsertTarget, NodeId, PanelView,
+    },
 };
 
 use super::{
@@ -319,7 +322,15 @@ impl DetachedWindow {
                 if self.drag.window_drag_active() {
                     return;
                 }
-                apply_drop_in(self.kind, area, item, target, window, cx)
+                apply_drop_in(
+                    self.kind,
+                    area,
+                    item,
+                    target.node(),
+                    target.placement(),
+                    window,
+                    cx,
+                )
             }
         }
     }
@@ -487,32 +498,38 @@ pub fn apply_drop(
     window: &mut Window,
     cx: &mut App,
 ) {
-    apply_drop_in(AreaKind::Main, area, item, target, window, cx);
+    apply_drop_in(
+        AreaKind::Main,
+        area,
+        item,
+        target.node(),
+        target.placement(),
+        window,
+        cx,
+    );
 }
 
 pub(crate) fn apply_drop_in(
     kind: AreaKind,
     area: &Entity<DockArea>,
     item: &AnyDrag,
-    target: &DropTarget,
+    node: NodeId,
+    placement: Option<Placement>,
     window: &mut Window,
     cx: &mut App,
 ) {
     let Some(drag) = item.value().downcast_ref::<PanelDrag>() else {
         return;
     };
-    let DropTarget::Group { node, placement } = target else {
-        return;
-    };
 
-    if drag.source == Some(*node) && living_source(drag).entity_id() == area.entity_id() {
-        let len = group_len(area.read(cx), *node).unwrap_or(0);
+    if drag.source == Some(node) && living_source(drag).entity_id() == area.entity_id() {
+        let len = group_len(area.read(cx), node).unwrap_or(0);
         if placement.is_none() || len <= 1 {
             return;
         }
     }
 
-    let Some(region) = placement_of(area.read(cx), *node) else {
+    let Some(region) = placement_of(area.read(cx), node) else {
         return;
     };
     if !drop_allowed(kind, zone_of(&drag.view, cx), region) {
@@ -521,12 +538,12 @@ pub(crate) fn apply_drop_in(
 
     let target = match placement {
         Some(placement) => InsertTarget::Split {
-            node: *node,
-            placement: *placement,
+            node,
+            placement,
             size: None,
         },
         None => InsertTarget::Tabs {
-            node: *node,
+            node,
             ix: None,
             activate: true,
         },
