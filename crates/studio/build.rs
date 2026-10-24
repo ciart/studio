@@ -1,6 +1,6 @@
 #[cfg(unix)]
-#[path = "build/macos.rs"]
-mod macos;
+#[path = "build/apple.rs"]
+mod apple;
 
 #[cfg(windows)]
 #[path = "build/windows.rs"]
@@ -10,8 +10,10 @@ fn main() {
     println!("cargo:rerun-if-changed=build.rs");
 
     #[cfg(unix)]
-    if std::env::var("CARGO_CFG_TARGET_OS").as_deref() == Ok("macos") {
-        macos::build();
+    match std::env::var("CARGO_CFG_TARGET_OS").as_deref() {
+        Ok("macos") => apple::build_macos(),
+        Ok("ios") => apple::build_ios(),
+        _ => {}
     }
 
     #[cfg(windows)]
