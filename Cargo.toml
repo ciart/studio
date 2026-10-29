@@ -13,5 +13,5 @@ studio-core = { path = "crates/core" }
 studio-shell = { path = "crates/shell" }
 gpui = { git = "https://github.com/peudomi/gpui.git" }
 gpui_platform = { git = "https://github.com/peudomi/gpui.git", features = ["font-kit", "x11", "wayland", "runtime_shaders"] }
-gpui-base = { git = "https://github.com/peudomi/gpui-component" }
+gpui-base = { git = "https://github.com/peudomi/gpui.git" }
 euclid = "0.22.14"
